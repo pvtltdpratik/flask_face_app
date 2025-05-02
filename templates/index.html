@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Recognizer - CLASS VISION</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    <style>
+        :root {
+            --primary-bg: #fff8ee;
+            --secondary-bg: #f5e6d0;
+            --accent-color: #d4a017;
+            --accent-dark: #b78a14;
+            --text-color: #3a3a3a;
+            --card-hover: #e8d5b5;
+            --wood-light: #e6c9a1;
+            --wood-medium: #d2b48c;
+            --wood-dark: #b78a52;
+        }
+
+        body {
+            background-color: var(--primary-bg);
+            color: var(--text-color);
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .navbar {
+            background-color: var(--wood-dark) !important;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .logo {
+            width: 40px;
+            height: 40px;
+            margin-right: 10px;
+            color: white;
+        }
+
+        .brand-text {
+            color: white !important;
+            font-family: 'Playfair Display', serif;
+            font-weight: 700;
+            font-size: 1.8rem;
+            letter-spacing: 1px;
+        }
+
+        .header-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.8rem;
+            font-weight: 700;
+            color: var(--primary-bg);
+            margin-bottom: 2rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .card-custom {
+            background-color: white;
+            border: none;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            min-height: 20rem;
+            padding: 2rem 1.5rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            border: 1px solid var(--wood-light);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .card-custom:hover {
+            transform: translateY(-8px);
+            background-color: var(--card-hover);
+            box-shadow: 0 15px 30px rgba(183, 138, 82, 0.2);
+        }
+
+        .card-icon-container {
+            background-color: var(--accent-color);
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0px auto 0px;
+            box-shadow: 0 4px 8px rgba(212, 160, 23, 0.3);
+        }
+
+        .card-icon {
+            font-size: 2.5rem;
+            color: white;
+        }
+
+        .card-title {
+            font-family: 'Playfair Display', serif;
+            font-weight: 700;
+            color: var(--wood-dark);
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+
+        .btn-custom {
+            background-color: var(--accent-color);
+            color: white;
+            font-weight: 600;
+            border: none;
+            border-radius: 50px;
+            padding: 10px 25px;
+            margin-top: 1rem;
+            transition: all 0.3s ease;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-custom:hover {
+            background-color: var(--accent-dark);
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(212, 160, 23, 0.4);
+            color: white;
+        }
+
+        .footer {
+            background-color: var(--wood-dark);
+            color: white;
+            padding: 2rem;
+            margin-top: 4rem;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .footer a {
+            color: var(--accent-color);
+            transition: all 0.3s ease;
+        }
+
+        .footer a:hover {
+            color: white;
+            text-decoration: none;
+        }
+
+        .wood-texture {
+            position: absolute;
+            width: 100%;
+            height: 300px;
+            background: linear-gradient(135deg, var(--wood-light) 0%, var(--wood-medium) 50%, var(--wood-dark) 100%);
+            z-index: -1;
+            top: 0;
+            opacity: 0.8;
+        }
+
+        .wood-grain-overlay {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-image: url('data:image/svg+xml;utf8,<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M0 0 L100 0 L100 100 L0 100 Z" fill="none" stroke="rgba(0,0,0,0.05)" stroke-width="1" stroke-dasharray="5,5"/></svg>');
+            opacity: 0.3;
+            z-index: -1;
+        }
+
+        @media (max-width: 768px) {
+            .header-title {
+                font-size: 2.2rem;
+            }
+            .card-icon-container {
+                width: 70px;
+                height: 70px;
+                margin: -35px auto 15px;
+            }
+            .card-icon {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Wood Texture Background Elements -->
+    <div class="wood-texture"></div>
+    <div class="wood-grain-overlay"></div>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-camera-video-fill logo" style="font-size: 1.8rem;"></i>
+                <span class="navbar-brand brand-text">CLASS VISION</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container my-5 py-4 position-relative">
+        <h1 class="header-title text-center">Welcome to CLASS VISION</h1>
+
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card card-custom text-center p-4 position-relative">
+                    <div class="card-icon-container">
+                        <i class="bi bi-person-plus-fill card-icon"></i>
+                    </div>
+                    <h3 class="card-title">Register a New Student</h3>
+                    <p class="card-text">Add new students to the system with face recognition and enrollment details.</p>
+                    <a href="{{ url_for('register') }}" class="btn btn-custom">
+                        <i class="bi bi-person-add me-2"></i>Register
+                    </a>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card card-custom text-center p-4 position-relative">
+                    <div class="card-icon-container">
+                        <i class="bi bi-camera-fill card-icon"></i>
+                    </div>
+                    <h3 class="card-title">Take Attendance</h3>
+                    <p class="card-text">Automatically mark attendance using our face recognition technology.</p>
+                    <a href="{{ url_for('automatic_attendance') }}" class="btn btn-custom">
+                        <i class="bi bi-camera me-2"></i>Take Attendance
+                    </a>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card card-custom text-center p-4 position-relative">
+                    <div class="card-icon-container">
+                        <i class="bi bi-clipboard-data-fill card-icon"></i>
+                    </div>
+                    <h3 class="card-title">View Attendance</h3>
+                    <p class="card-text">Check and manage attendance records for all your classes.</p>
+                    <a href="{{ url_for('view_attendance') }}" class="btn btn-custom">
+                        <i class="bi bi-eye me-2"></i>View Records
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer text-center">
+        <div class="container">
+            <div class="mb-3">
+                <a href="#" class="text-decoration-none me-3" style="color: var(--accent-color); font-size: 1.5rem;">
+                    <i class="bi bi-facebook"></i>
+                </a>
+                <a href="#" class="text-decoration-none me-3" style="color: var(--accent-color); font-size: 1.5rem;">
+                    <i class="bi bi-twitter"></i>
+                </a>
+                <a href="#" class="text-decoration-none" style="color: var(--accent-color); font-size: 1.5rem;">
+                    <i class="bi bi-instagram"></i>
+                </a>
+            </div>
+            <p class="mb-1">&copy; 2025 CLASS VISION | All Rights Reserved</p>
+            <p class="mb-0">Designed with <i class="bi bi-heart-fill" style="color: #ff6b6b;"></i> for educators</p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
