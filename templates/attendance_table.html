@@ -1,65 +1,153 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Attendance for {{ subject }}</title>
-  <!-- Bootstrap 5 CSS -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <style>
-    body {
-      background-color: black;
-      color: yellow;
-      font-family: Arial, sans-serif;
-      padding-top: 40px;
-    }
-    h1 {
-      color: lime;
-      text-align: center;
-      margin-bottom: 30px;
-    }
-    .table-container {
-      width: 95%;
-      margin: auto;
-    }
-    .table {
-      color: white;
-      border-color: yellow;
-    }
-    .table thead {
-      background-color: #222;
-      color: yellow;
-    }
-    .table td, .table th {
-      background-color: #111;
-      border: 1px solid yellow;
-    }
-    a.back-link {
-      display: block;
-      text-align: center;
-      color: yellow;
-      margin-top: 30px;
-      text-decoration: none;
-    }
-    a.back-link:hover {
-      text-decoration: underline;
-      color: #ffc107;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <title>View Attendance</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-bg: #fff8ee;
+            --secondary-bg: #f5e6d0;
+            --accent-color: #d4a017;
+            --accent-dark: #b78a14;
+            --text-color: #3a3a3a;
+            --wood-light: #e6c9a1;
+            --wood-medium: #d2b48c;
+            --wood-dark: #b78a52;
+        }
+
+        body {
+            background-color: var(--primary-bg);
+            color: var(--text-color);
+        }
+
+        .header {
+            background-color: var(--wood-dark);
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .card-custom {
+            background-color: var(--secondary-bg);
+            border-color: var(--wood-medium);
+        }
+
+        .btn-accent {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        .btn-accent:hover {
+            background-color: var(--accent-dark);
+        }
+
+        table {
+            background-color: white;
+        }
+    </style>
 </head>
-<body>
+<body class="container py-4">
 
-  <div class="container-fluid">
-    <h1>📋 Attendance for {{ subject }}</h1>
-
-    <!-- Rendered attendance table (already safe HTML) -->
-    <div class="table-container">
-      {{ tables|safe }}
+    <div class="header text-center d-flex inline-flex justify-content-center">
+        <h2>View Attendance</h2>
     </div>
 
-    <a href="{{ url_for('subject_choose') }}" class="back-link">⬅️ Check another subject</a>
-  </div>
+    <div class="card card-custom p-3 mb-3">
+        <div class="row g-3 align-items-center">
+            <div class="col-md-4">
+                <label for="date" class="form-label">Select Date</label>
+                <input type="date" id="date" class="form-control">
+            </div>
+            <div class="col-md-4">
+                <label for="classDropdown" class="form-label">Select Class</label>
+                <select id="classDropdown" class="form-select">
+                    <option value="">-- Select Class --</option>
+                </select>
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button id="loadBtn" class="btn btn-accent w-100">Load Attendance</button>
+            </div>
+        </div>
+    </div>
 
-  <!-- Bootstrap JS Bundle -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <div id="attendanceTable" class="table-responsive d-none">
+        <table class="table table-bordered">
+            <thead class="table-light">
+                <tr>
+                    <th>Student Name</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="attendanceBody">
+            </tbody>
+        </table>
+      <br>
+    </div>
+
+      <a href="{{ url_for('index') }}" class="btn btn-accent">
+        <i class="bi bi-arrow-left me-2"></i>Back to Home
+      </a>
+
+    <script>
+        const dateInput = document.getElementById('date');
+        const classDropdown = document.getElementById('classDropdown');
+        const loadBtn = document.getElementById('loadBtn');
+        const attendanceTable = document.getElementById('attendanceTable');
+        const attendanceBody = document.getElementById('attendanceBody');
+
+        dateInput.addEventListener('change', () => {
+            const date = dateInput.value;
+            if (!date) return;
+            fetch('/get_classes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ date: date })
+            })
+            .then(res => res.json())
+            .then(classes => {
+                classDropdown.innerHTML = `<option value="">-- Select Class --</option>`;
+                classes.forEach(cls => {
+                    const option = document.createElement('option');
+                    option.value = cls;
+                    option.textContent = cls;
+                    classDropdown.appendChild(option);
+                });
+            });
+        });
+
+        loadBtn.addEventListener('click', () => {
+            const date = dateInput.value;
+            const selectedClass = classDropdown.value;
+            if (!date || !selectedClass) {
+                alert("Please select both date and class.");
+                return;
+            }
+            fetch('/get_attendance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ date: date, class: selectedClass })
+            })
+            .then(res => res.json())
+            .then(data => {
+                attendanceBody.innerHTML = '';
+                if (data.length === 0) {
+                    attendanceTable.classList.add('d-none');
+                    alert("No attendance found.");
+                    return;
+                }
+                data.forEach(student => {
+                    attendanceBody.innerHTML += `
+                        <tr>
+                            <td>${student.name}</td>
+                            <td>${student.status}</td>
+                        </tr>
+                    `;
+                });
+                attendanceTable.classList.remove('d-none');
+            });
+        });
+    </script>
 </body>
 </html>

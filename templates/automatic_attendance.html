@@ -123,12 +123,71 @@
       bottom: -30px;
       left: -30px;
     }
-    
+
+    .video-container {
+      margin: 20px 0;
+      position: relative;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 2px solid var(--wood-light);
+    }
+
+    #videoFeed {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    #attendanceResults {
+      background-color: var(--secondary-bg);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-top: 1.5rem;
+      border: 1px solid var(--wood-light);
+    }
+
+    .student-card {
+      background-color: white;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      border-left: 4px solid var(--accent-color);
+      box-shadow: 0 2px 8px rgba(183, 138, 82, 0.1);
+    }
+
+    .student-name {
+      font-weight: 600;
+      color: var(--wood-dark);
+    }
+
+    .attendance-time {
+      color: var(--wood-medium);
+      font-size: 0.9rem;
+    }
+
+    .status-badge {
+      background-color: var(--accent-color);
+      color: white;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    #captureBtn {
+      width: 100%;
+      margin-top: 1rem;
+    }
+
+    .hidden {
+      display: none;
+    }
+
     @media (max-width: 576px) {
       .attendance-card {
         padding: 2rem 1.5rem;
       }
-      
+
       h4 {
         font-size: 1.6rem;
       }
@@ -140,32 +199,118 @@
     <div class="position-relative">
       <div class="decorative-dots top-right"></div>
       <div class="decorative-dots bottom-left"></div>
-      
+
       <div class="attendance-card">
         <div class="text-center">
           <i class="bi bi-camera-video-fill header-icon"></i>
           <h4>Face Attendance System</h4>
         </div>
-        
-        <form action="/take_image" method="POST">
+
+        <form id="attendanceForm">
           <div class="mb-4">
             <label for="subject" class="form-label">Enter Subject Name</label>
-            <input type="text" class="form-control" id="subject" name="subject" 
+            <input type="text" class="form-control" id="subject" name="subject"
                    placeholder="e.g. Mathematics, Physics, etc." required>
             <div class="form-text text-end" style="color: var(--wood-medium);">
               <i class="bi bi-info-circle"></i> Enter the subject you're taking attendance for
             </div>
           </div>
-          
-          <button type="submit" class="btn btn-attendance w-100">
+
+          <button type="button" id="startAttendanceBtn" class="btn btn-attendance w-100">
             <i class="bi bi-camera-fill me-2"></i> Start Face Attendance
           </button>
         </form>
+
+        <div id="attendanceSection" class="hidden mt-4">
+          <div class="video-container">
+            <img id="videoFeed" src="" width="640" height="480">
+          </div>
+
+          <button id="captureBtn" class="btn btn-attendance">
+            <i class="bi bi-person-check-fill me-2"></i> Mark Attendance
+          </button>
+
+          <div id="attendanceResults" class="hidden">
+            <h5 class="text-center mb-3" style="color: var(--wood-dark);">
+              <i class="bi bi-list-check me-2"></i>Attendance Results
+            </h5>
+            <div id="resultsList"></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 
   <!-- Bootstrap JS Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const startBtn = document.getElementById('startAttendanceBtn');
+      const attendanceSection = document.getElementById('attendanceSection');
+      const videoFeed = document.getElementById('videoFeed');
+      const captureBtn = document.getElementById('captureBtn');
+      const attendanceResults = document.getElementById('attendanceResults');
+      const resultsList = document.getElementById('resultsList');
+      const subjectInput = document.getElementById('subject');
+
+      // Start attendance system
+      startBtn.addEventListener('click', function() {
+        if (!subjectInput.value) {
+          alert('Please enter a subject name');
+          return;
+        }
+
+        attendanceSection.classList.remove('hidden');
+        videoFeed.src = "{{ url_for('automatic_attendance_page') }}";
+        startBtn.disabled = true;
+        subjectInput.disabled = true;
+      });
+
+      // Capture attendance
+      captureBtn.addEventListener('click', async function() {
+        try {
+          const response = await fetch('/capture', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              subject: subjectInput.value
+            })
+          });
+
+          const result = await response.json();
+
+          if (result.error) {
+            alert(result.error);
+          } else {
+            attendanceResults.classList.remove('hidden');
+
+            // Add to results list
+            const studentCard = document.createElement('div');
+            studentCard.className = 'student-card';
+            studentCard.innerHTML = `
+              <div class="d-flex justify-content-between align-items-center">
+                <span class="student-name">${result.student_id}</span>
+                <span class="status-badge">Present</span>
+              </div>
+              <div class="attendance-time mt-1">
+                <i class="bi bi-clock"></i> ${new Date(result.timestamp).toLocaleString()}
+              </div>
+              <div class="mt-2">
+                <small class="text-muted">Subject: ${result.subject}</small>
+              </div>
+            `;
+
+            resultsList.prepend(studentCard);
+          }
+        } catch (error) {
+          console.error('Error:', error);
+          alert('Failed to capture attendance');
+        }
+      });
+    });
+  </script>
 </body>
 </html>
