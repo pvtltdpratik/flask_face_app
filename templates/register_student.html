@@ -11,8 +11,8 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <!-- Google Fonts -->
     <link
-        href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Playfair+Display:wght@700&display=swap"
-        rel="stylesheet">
+            href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Playfair+Display:wght@700&display=swap"
+            rel="stylesheet">
     <!-- Custom CSS -->
     <style>
         :root {
@@ -185,6 +185,51 @@
             display: none;
         }
 
+        .status-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    max-width: 300px;
+    z-index: 1000;
+}
+
+.alert {
+    padding: 0.75rem 1.25rem;
+    margin-bottom: 1rem;
+    border: 1px solid transparent;
+    border-radius: 0.25rem;
+    animation: slideIn 0.3s ease-out;
+}
+
+.alert-success {
+    color: #0f5132;
+    background-color: #d1e7dd;
+    border-color: #badbcc;
+}
+
+.alert-danger {
+    color: #842029;
+    background-color: #f8d7da;
+    border-color: #f5c2c7;
+}
+
+.alert-info {
+    color: #084298;
+    background-color: #cfe2ff;
+    border-color: #b6d4fe;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
         @media (max-width: 768px) {
             .registration-container {
                 margin: 1rem;
@@ -199,246 +244,303 @@
 </head>
 
 <body>
-    <div class="d-flex align-items-center min-vh-100">
-        <div class="container position-relative">
-            <div class="decorative-element top-right"></div>
-            <div class="decorative-element bottom-left"></div>
+<div class="d-flex align-items-center min-vh-100">
+    <div class="container position-relative">
+        <div class="decorative-element top-right"></div>
+        <div class="decorative-element bottom-left"></div>
 
-            <div class="registration-container">
-                <div class="text-center">
-                    <i class="bi bi-person-plus-fill header-icon"></i>
-                    <h1>Register New Student</h1>
+        <div class="registration-container">
+            <div class="text-center">
+                <i class="bi bi-person-plus-fill header-icon"></i>
+                <h1>Register New Student</h1>
+            </div>
+
+            <form id="registrationForm">
+                <div class="mb-4">
+                    <label for="enrollment_no" class="form-label">Enrollment Number</label>
+                    <input type="text" class="form-control" id="enrollment_no" name="enrollment_no" required>
+                    <div class="form-text">Enter the student's unique enrollment ID</div>
                 </div>
 
-                <form id="registrationForm">
-                    <div class="mb-4">
-                        <label for="enrollment_no" class="form-label">Enrollment Number</label>
-                        <input type="text" class="form-control" id="enrollment_no" name="enrollment_no" required>
-                        <div class="form-text">Enter the student's unique enrollment ID</div>
-                    </div>
+                <div class="mb-4">
+                    <label for="name" class="form-label">Full Name</label>
+                    <input type="text" class="form-control" id="name" name="name" required>
+                    <div class="form-text">Enter the student's full name as per records</div>
+                </div>
 
-                    <div class="mb-4">
-                        <label for="name" class="form-label">Full Name</label>
-                        <input type="text" class="form-control" id="name" name="name" required>
-                        <div class="form-text">Enter the student's full name as per records</div>
-                    </div>
+                <div class="mb-4">
+                    <label for="class" class="form-label">Class</label>
+                    <input type="text" class="form-control" id="class" name="class" required>
+                    <div class="form-text">Enter the class</div>
+                </div>
 
-                    <div class="mb-4">
-                        <label for="class" class="form-label">Class</label>
-                        <input type="text" class="form-control" id="class" name="class" required>
-                        <div class="form-text">Enter the class</div>
-                    </div>
-
-                    <div class="mb-4">
-                        <label for="date_of_birth" class="form-label">Date of Birth</label>
-                        <div class="input-group">
-                            <input type="date" class="form-control" id="date_of_birth" name="date_of_birth"
-                                pattern="\d{4}-\d{2}-\d{2}" required max="<?= date('Y-m-d') ?>">
-                            <span class="input-group-text">
+                <div class="mb-4">
+                    <label for="date_of_birth" class="form-label">Date of Birth</label>
+                    <div class="input-group">
+                        <input type="date" class="form-control" id="date_of_birth" name="date_of_birth"
+                               pattern="\d{4}-\d{2}-\d{2}" required max="<?= date('Y-m-d') ?>">
+                        <span class="input-group-text">
                                 <i class="bi bi-calendar-date"></i>
                             </span>
-                        </div>
-                        <div class="form-text">Format: MM-DD-YYYY</div>
                     </div>
+                    <div class="form-text">Format: MM-DD-YYYY</div>
+                </div>
 
-                    <div class="d-grid gap-3">
-                        <button type="button" id="takeImageBtn" class="btn btn-outline w-100">Take Student
-                            Image</button>
-                        <div id="imageCaptureSection">
-                            <video id="videoPreview" autoplay playsinline></video>
-                            <canvas id="canvasOutput"></canvas>
-                            <img id="previewImage" class="preview-image" alt="Captured Preview">
-                            <div class="text-center">
-                                <button type="button" id="captureBtn" class="capture-btn">
-                                    <i class="bi bi-camera-fill me-2"></i>Capture
-                                </button>
-                                <button type="button" id="retakeBtn" class="btn btn-outline">
-                                    <i class="bi bi-arrow-repeat me-2"></i>Retake
-                                </button>
-                            </div>
+                <div class="d-grid gap-3">
+                    <button type="button" id="takeImageBtn" class="btn btn-outline w-100">Take Student
+                        Image
+                    </button>
+                    <div id="imageCaptureSection">
+                        <video id="videoPreview" autoplay playsinline></video>
+                        <canvas id="canvasOutput"></canvas>
+                        <img id="previewImage" class="preview-image" alt="Captured Preview">
+                        <div class="text-center">
+                            <button type="button" id="captureBtn" class="capture-btn">
+                                <i class="bi bi-camera-fill me-2"></i>Capture
+                            </button>
+                            <button type="button" id="retakeBtn" class="btn btn-outline">
+                                <i class="bi bi-arrow-repeat me-2"></i>Retake
+                            </button>
                         </div>
-                        <button type="submit" id="submitBtn" class="btn btn-primary w-100" disabled>
-                            <i class="bi bi-check-circle-fill me-2"></i>Register Student
-                        </button>
-                        <a href="{{ url_for('index') }}" class="btn btn-outline">
-                            <i class="bi bi-arrow-left me-2"></i>Back to Home
-                        </a>
                     </div>
-                </form>
-            </div>
+                    <button type="submit" id="submitBtn" class="btn btn-primary w-100" disabled>
+                        <i class="bi bi-check-circle-fill me-2"></i>Register Student
+                    </button>
+                    <a href="{{ url_for('index') }}" class="btn btn-outline">
+                        <i class="bi bi-arrow-left me-2"></i>Back to Home
+                    </a>
+                </div>
+            </form>
         </div>
     </div>
+</div>
 
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            // Form elements
-            const form = document.getElementById('registrationForm');
-            const enrollmentInput = document.getElementById('enrollment_no');
-            const nameInput = document.getElementById('name');
-            const classInput = document.getElementById('class');
-            const dobInput = document.getElementById('date_of_birth');
-            const takeImageBtn = document.getElementById('takeImageBtn');
-            const submitBtn = document.getElementById('submitBtn');
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Form elements
+        const form = document.getElementById('registrationForm');
+        const enrollmentInput = document.getElementById('enrollment_no');
+        const nameInput = document.getElementById('name');
+        const classInput = document.getElementById('class');
+        const dobInput = document.getElementById('date_of_birth');
+        const takeImageBtn = document.getElementById('takeImageBtn');
+        const submitBtn = document.getElementById('submitBtn');
 
-            // Image capture elements
-            const imageCaptureSection = document.getElementById('imageCaptureSection');
-            const videoPreview = document.getElementById('videoPreview');
-            const canvasOutput = document.getElementById('canvasOutput');
-            const previewImage = document.getElementById('previewImage');
-            const captureBtn = document.getElementById('captureBtn');
-            const retakeBtn = document.getElementById('retakeBtn');
+        // Image capture elements
+        const imageCaptureSection = document.getElementById('imageCaptureSection');
+        const videoPreview = document.getElementById('videoPreview');
+        const canvasOutput = document.getElementById('canvasOutput');
+        const previewImage = document.getElementById('previewImage');
+        const captureBtn = document.getElementById('captureBtn');
+        const retakeBtn = document.getElementById('retakeBtn');
 
-            let stream = null;
-            let imageCaptured = false;
-            let imageData = null;
+        // Status elements
+        const statusContainer = document.createElement('div');
+        statusContainer.className = 'status-container mt-3';
+        form.appendChild(statusContainer);
 
-            // Check form validity
-            function checkFormValidity() {
-                const isEnrollmentValid = enrollmentInput.value.trim() !== '';
-                const isNameValid = nameInput.value.trim() !== '';
-                const isClassValid = classInput.value.trim() !== '';
-                const isDobValid = dobInput.value !== '';
-                const isImageCaptured = imageCaptured;
+        let stream = null;
+        let imageCaptured = false;
+        let imageData = null;
 
-                const allValid = isEnrollmentValid && isNameValid && isClassValid && isDobValid && isImageCaptured;
+        // Check form validity
+        function checkFormValidity() {
+            // Clear previous status messages
+            statusContainer.innerHTML = '';
 
-                submitBtn.disabled = !allValid;
+            const isEnrollmentValid = enrollmentInput.value.trim() !== '' &&
+                                    enrollmentInput.value.trim().length >= 3;
+            const isNameValid = nameInput.value.trim() !== '' &&
+                              nameInput.value.trim().length >= 2;
+            const isClassValid = classInput.value.trim() !== '';
+            const isDobValid = dobInput.value !== '';
+            const isImageCaptured = imageCaptured;
+
+            // Enrollment validation feedback
+            if (enrollmentInput.value.trim() !== '' && enrollmentInput.value.trim().length < 3) {
+                showStatus('Enrollment number must be at least 3 characters', 'error');
             }
 
-            // Add event listeners to all inputs
-            [enrollmentInput, nameInput, classInput, dobInput].forEach(input => {
-                input.addEventListener('input', checkFormValidity);
-                input.addEventListener('change', checkFormValidity);
-            });
+            // Name validation feedback
+            if (nameInput.value.trim() !== '' && nameInput.value.trim().length < 2) {
+                showStatus('Name must be at least 2 characters', 'error');
+            }
 
-            // Take Image button click handler
-            takeImageBtn.addEventListener('click', async function () {
-                try {
-                    imageCaptureSection.style.display = 'block';
-                    stream = await navigator.mediaDevices.getUserMedia({
-                        video: {
-                            width: 640,
-                            height: 480,
-                            facingMode: 'user' // Front camera
-                        },
-                        audio: false
-                    });
-                    videoPreview.srcObject = stream;
-                    takeImageBtn.disabled = true;
-                } catch (error) {
-                    console.error('Error accessing camera:', error);
-                    alert('Could not access the camera. Please make sure you have granted camera permissions.');
-                }
-            });
+            const allValid = isEnrollmentValid && isNameValid && isClassValid && isDobValid && isImageCaptured;
 
-            // Capture button click handler
-            // Capture button click handler
-            captureBtn.addEventListener('click', function () {
-                const context = canvasOutput.getContext('2d');
+            submitBtn.disabled = !allValid;
+            return allValid;
+        }
+
+        // Show status message
+        function showStatus(message, type = 'success') {
+            const statusDiv = document.createElement('div');
+            statusDiv.className = `alert alert-${type === 'error' ? 'danger' : 'success'}`;
+            statusDiv.textContent = message;
+            statusContainer.appendChild(statusDiv);
+
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                statusDiv.classList.add('fade-out');
+                setTimeout(() => statusDiv.remove(), 500);
+            }, 5000);
+        }
+
+        // Add event listeners to all inputs
+        [enrollmentInput, nameInput, classInput, dobInput].forEach(input => {
+            input.addEventListener('input', checkFormValidity);
+            input.addEventListener('change', checkFormValidity);
+        });
+
+        // Take Image button click handler
+        takeImageBtn.addEventListener('click', async function() {
+            try {
+                imageCaptureSection.style.display = 'block';
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        width: 640,
+                        height: 480,
+                        facingMode: 'user' // Front camera
+                    },
+                    audio: false
+                });
+                videoPreview.srcObject = stream;
+                takeImageBtn.disabled = true;
+                showStatus('Camera activated - Please position your face in the frame', 'info');
+            } catch (error) {
+                console.error('Error accessing camera:', error);
+                showStatus('Could not access the camera. Please make sure you have granted camera permissions.', 'error');
+            }
+        });
+
+        // Capture button click handler
+        captureBtn.addEventListener('click', function() {
+            if (stream) {
+                // Set canvas dimensions to match video
                 canvasOutput.width = videoPreview.videoWidth;
                 canvasOutput.height = videoPreview.videoHeight;
-                context.drawImage(videoPreview, 0, 0, canvasOutput.width, canvasOutput.height);
-                imageData = canvasOutput.toDataURL('image/png');
 
+                // Draw current video frame to canvas
+                const context = canvasOutput.getContext('2d');
+                context.drawImage(videoPreview, 0, 0, canvasOutput.width, canvasOutput.height);
+
+                // Convert canvas to image and display
+                imageData = canvasOutput.toDataURL('image/jpeg', 0.8); // 0.8 quality compression
                 previewImage.src = imageData;
                 previewImage.style.display = 'block';
-                canvasOutput.style.display = 'none';
+
+                // Hide video and show captured image
+                videoPreview.style.display = 'none';
+                captureBtn.style.display = 'none';
+
                 imageCaptured = true;
-
-                // Stop video stream
-                if (stream) {
-                    stream.getTracks().forEach(track => track.stop());
-                }
-                videoPreview.srcObject = null;
-
                 checkFormValidity();
-            });
-
-            // Retake button click handler
-            retakeBtn.addEventListener('click', async function () {
-                imageCaptured = false;
-                previewImage.style.display = 'none';
-                checkFormValidity();
-
-                try {
-                    stream = await navigator.mediaDevices.getUserMedia({
-                        video: {
-                            width: 640,
-                            height: 480,
-                            facingMode: 'user'
-                        },
-                        audio: false
-                    });
-                    videoPreview.srcObject = stream;
-                } catch (error) {
-                    console.error('Error re-accessing camera:', error);
-                    alert('Could not access the camera again.');
-                }
-            });
-
-            // Form submission handler
-            form.addEventListener('submit', async function (e) {
-                e.preventDefault();
-
-                if (!imageCaptured) {
-                    alert('Please capture a student image before submitting.');
-                    return;
-                }
-
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Registering...';
-
-                try {
-                    const formData = {
-                        enrollment_no: enrollmentInput.value.trim(),
-                        name: nameInput.value.trim(),
-                        class: classInput.value.trim(),
-                        date_of_birth: dobInput.value,
-                        image_data: imageData
-                    };
-
-                    const response = await fetch('/api/register_student', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(formData)
-                    });
-
-                    const result = await response.json();
-
-                    if (response.ok) {
-                        alert('Student registered successfully!');
-                        form.reset();
-                        previewImage.style.display = 'none';
-                        imageCaptureSection.style.display = 'none';
-                        if (stream) {
-                            stream.getTracks().forEach(track => track.stop());
-                        }
-                        imageCaptured = false;
-                    } else {
-                        alert(result.error || 'Registration failed. Please try again.');
-                    }
-                } catch (error) {
-                    console.error('Error:', error);
-                    alert('An error occurred while registering. Please try again.');
-                } finally {
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i>Register Student';
-                }
-            });
-
-            // Clean up camera stream when leaving page
-            window.addEventListener('beforeunload', function () {
-                if (stream) {
-                    stream.getTracks().forEach(track => track.stop());
-                }
-            });
+                showStatus('Image captured successfully!', 'success');
+            }
         });
-    </script>
+
+        // Retake button click handler
+        retakeBtn.addEventListener('click', function() {
+            if (stream) {
+                previewImage.style.display = 'none';
+                videoPreview.style.display = 'block';
+                captureBtn.style.display = 'inline-block';
+                imageCaptured = false;
+                checkFormValidity();
+                showStatus('Ready to retake photo', 'info');
+            }
+        });
+
+        // Form submission handler
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            if (!checkFormValidity()) {
+                showStatus('Please complete all required fields correctly', 'error');
+                return;
+            }
+
+            if (!imageCaptured) {
+                showStatus('Please capture a student image before submitting.', 'error');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Registering...';
+
+            try {
+                const formData = {
+                    enrollment_no: enrollmentInput.value.trim(),
+                    name: nameInput.value.trim(),
+                    class: classInput.value.trim(),
+                    date_of_birth: dobInput.value,
+                    image_data: imageData
+                };
+
+                const response = await fetch('/api_register_student', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showStatus('Student registered successfully! Redirecting...', 'success');
+                    // Clear form and reset states
+                    form.reset();
+                    previewImage.style.display = 'none';
+                    imageCaptureSection.style.display = 'none';
+                    if (stream) {
+                        stream.getTracks().forEach(track => track.stop());
+                    }
+                    imageCaptured = false;
+
+                    // Redirect after 2 seconds
+                    setTimeout(() => {
+                        window.location.href = "{{ url_for('index') }}";
+                    }, 2000);
+                } else {
+                    showStatus(result.error || 'Registration failed. Please try again.', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showStatus('An error occurred while registering. Please try again.', 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i>Register Student';
+            }
+        });
+
+        // Clean up camera stream when leaving page
+        window.addEventListener('beforeunload', function() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+        });
+
+        // Add fade-out animation to status messages
+        const style = document.createElement('style');
+        style.textContent = `
+            .fade-out {
+                opacity: 0;
+                transition: opacity 0.5s ease-out;
+            }
+            .alert-info {
+                color: #084298;
+                background-color: #cfe2ff;
+                border-color: #b6d4fe;
+            }
+        `;
+        document.head.appendChild(style);
+    });
+</script>
+
 </body>
 
 </html>

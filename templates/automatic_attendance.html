@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <title>CLASS VISION - Face Attendance</title>
@@ -8,7 +9,9 @@
   <!-- Bootstrap Icons -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Playfair+Display:wght@700&display=swap"
+    rel="stylesheet">
   <style>
     :root {
       --primary-bg: #fff8ee;
@@ -20,7 +23,7 @@
       --wood-medium: #d2b48c;
       --wood-dark: #b78a52;
     }
-    
+
     body {
       background-color: var(--primary-bg);
       color: var(--text-color);
@@ -30,7 +33,7 @@
       align-items: center;
       background-image: url('data:image/svg+xml;utf8,<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M0 0 L100 0 L100 100 L0 100 Z" fill="none" stroke="rgba(183,138,82,0.05)" stroke-width="1" stroke-dasharray="5,5"/></svg>');
     }
-    
+
     .attendance-card {
       background-color: white;
       border-radius: 16px;
@@ -41,18 +44,18 @@
       max-width: 450px;
       margin: 0 auto;
     }
-    
+
     .attendance-card:hover {
       transform: translateY(-5px);
       box-shadow: 0 15px 35px rgba(183, 138, 82, 0.2);
     }
-    
+
     .header-icon {
       font-size: 2.8rem;
       color: var(--accent-color);
       margin-bottom: 1rem;
     }
-    
+
     h4 {
       font-family: 'Playfair Display', serif;
       color: var(--wood-dark);
@@ -61,13 +64,13 @@
       text-align: center;
       font-size: 1.8rem;
     }
-    
+
     .form-label {
       font-weight: 600;
       color: var(--wood-dark);
       margin-bottom: 0.75rem;
     }
-    
+
     .form-control {
       border: 2px solid var(--wood-light);
       border-radius: 10px;
@@ -75,17 +78,17 @@
       transition: all 0.3s ease;
       background-color: var(--primary-bg);
     }
-    
+
     .form-control:focus {
       border-color: var(--accent-color);
       box-shadow: 0 0 0 0.25rem rgba(212, 160, 23, 0.25);
     }
-    
+
     .form-control::placeholder {
       color: var(--wood-medium);
       opacity: 0.6;
     }
-    
+
     .btn-attendance {
       background-color: var(--accent-color);
       border: none;
@@ -97,13 +100,13 @@
       margin-top: 1rem;
       font-size: 1.1rem;
     }
-    
+
     .btn-attendance:hover {
       background-color: var(--accent-dark);
       transform: translateY(-2px);
       box-shadow: 0 5px 15px rgba(212, 160, 23, 0.4);
     }
-    
+
     .decorative-dots {
       position: absolute;
       width: 100px;
@@ -113,12 +116,12 @@
       opacity: 0.3;
       z-index: -1;
     }
-    
+
     .decorative-dots.top-right {
       top: -30px;
       right: -30px;
     }
-    
+
     .decorative-dots.bottom-left {
       bottom: -30px;
       left: -30px;
@@ -192,8 +195,41 @@
         font-size: 1.6rem;
       }
     }
+
+    .attendance-spinner {
+      display: inline-block;
+      width: 1rem;
+      height: 1rem;
+      vertical-align: middle;
+      border: 0.2em solid currentColor;
+      border-right-color: transparent;
+      border-radius: 50%;
+      animation: spinner-border 0.75s linear infinite;
+      margin-right: 0.5rem;
+    }
+
+    @keyframes spinner-border {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .processing-card {
+      background-color: rgba(212, 160, 23, 0.1);
+    }
+
+    .success-card {
+      border-left: 4px solid #28a745;
+    }
+
+    .error-card {
+      border-left: 4px solid #dc3545;
+    }
   </style>
+
+
 </head>
+
 <body>
   <div class="container">
     <div class="position-relative">
@@ -210,7 +246,7 @@
           <div class="mb-4">
             <label for="subject" class="form-label">Enter Subject Name</label>
             <input type="text" class="form-control" id="subject" name="subject"
-                   placeholder="e.g. Mathematics, Physics, etc." required>
+              placeholder="e.g. Mathematics, Physics, etc." required>
             <div class="form-text text-end" style="color: var(--wood-medium);">
               <i class="bi bi-info-circle"></i> Enter the subject you're taking attendance for
             </div>
@@ -245,7 +281,7 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
   <script>
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
       const startBtn = document.getElementById('startAttendanceBtn');
       const attendanceSection = document.getElementById('attendanceSection');
       const videoFeed = document.getElementById('videoFeed');
@@ -254,8 +290,11 @@
       const resultsList = document.getElementById('resultsList');
       const subjectInput = document.getElementById('subject');
 
+      // Store recognized students to avoid duplicates
+      const recognizedStudents = new Set();
+
       // Start attendance system
-      startBtn.addEventListener('click', function() {
+      startBtn.addEventListener('click', function () {
         if (!subjectInput.value) {
           alert('Please enter a subject name');
           return;
@@ -265,11 +304,18 @@
         videoFeed.src = "{{ url_for('automatic_attendance_page') }}";
         startBtn.disabled = true;
         subjectInput.disabled = true;
+
+        // Clear previous results
+        resultsList.innerHTML = '';
+        recognizedStudents.clear();
       });
 
       // Capture attendance
-      captureBtn.addEventListener('click', async function() {
+      captureBtn.addEventListener('click', async function () {
         try {
+          captureBtn.disabled = true;
+          captureBtn.innerHTML = '<span class="attendance-spinner"></span> Processing...';
+
           const response = await fetch('/capture', {
             method: 'POST',
             headers: {
@@ -287,30 +333,188 @@
           } else {
             attendanceResults.classList.remove('hidden');
 
-            // Add to results list
+            // Skip if student already recognized
+            if (recognizedStudents.has(result.student_id)) {
+              showStatus(`${result.student_id} already marked present`, 'info');
+              return;
+            }
+
+            recognizedStudents.add(result.student_id);
+
+            // Create processing card
             const studentCard = document.createElement('div');
-            studentCard.className = 'student-card';
+            studentCard.className = 'student-card processing-card';
             studentCard.innerHTML = `
-              <div class="d-flex justify-content-between align-items-center">
-                <span class="student-name">${result.student_id}</span>
-                <span class="status-badge">Present</span>
-              </div>
-              <div class="attendance-time mt-1">
-                <i class="bi bi-clock"></i> ${new Date(result.timestamp).toLocaleString()}
-              </div>
-              <div class="mt-2">
-                <small class="text-muted">Subject: ${result.subject}</small>
-              </div>
-            `;
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="student-name">${result.student_id}</span>
+              <span class="status-badge">
+                <span class="attendance-spinner"></span> Marking...
+              </span>
+            </div>
+          `;
 
             resultsList.prepend(studentCard);
+
+            // Simulate API call to save attendance (replace with actual API call)
+            setTimeout(async () => {
+              try {
+                // This would be your actual API call to save attendance
+                const saveResponse = await saveAttendanceToDatabase(
+                  result.student_id,
+                  subjectInput.value
+                );
+
+                // Update card with success state
+                studentCard.className = 'student-card success-card';
+                studentCard.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center">
+                  <span class="student-name">${result.student_id}</span>
+                  <span class="status-badge">Present</span>
+                </div>
+                <div class="attendance-time mt-1">
+                  <i class="bi bi-clock"></i> ${new Date().toLocaleString()}
+                </div>
+                <div class="mt-2">
+                  <small class="text-muted">Subject: ${subjectInput.value}</small>
+                </div>
+              `;
+
+                showStatus(`${result.student_id} marked present`, 'success');
+              } catch (error) {
+                // Update card with error state
+                studentCard.className = 'student-card error-card';
+                studentCard.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center">
+                  <span class="student-name">${result.student_id}</span>
+                  <span class="status-badge" style="background-color: #dc3545;">Error</span>
+                </div>
+                <div class="mt-2 text-danger">
+                  <small>Failed to save attendance</small>
+                </div>
+              `;
+
+                showStatus(`Failed to mark ${result.student_id} present`, 'error');
+              }
+            }, 1500); // Simulate network delay
           }
         } catch (error) {
           console.error('Error:', error);
-          alert('Failed to capture attendance');
+          showStatus('Failed to capture attendance', 'error');
+        } finally {
+          captureBtn.disabled = false;
+          captureBtn.innerHTML = '<i class="bi bi-person-check-fill me-2"></i> Mark Attendance';
         }
       });
+
+      // Status notification function
+      function showStatus(message, type = 'success') {
+        const statusDiv = document.createElement('div');
+        statusDiv.className = `alert alert-${type === 'error' ? 'danger' :
+          type === 'info' ? 'info' : 'success'} mt-3`;
+        statusDiv.innerHTML = `
+        <i class="bi ${type === 'error' ? 'bi-exclamation-triangle' :
+            type === 'info' ? 'bi-info-circle' : 'bi-check-circle'} me-2"></i>
+        ${message}
+      `;
+
+        // Add to the top of attendance results
+        attendanceResults.prepend(statusDiv);
+
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+          statusDiv.style.opacity = '0';
+          setTimeout(() => statusDiv.remove(), 500);
+        }, 5000);
+      }
+
+      // Mock function - replace with actual API call to your backend
+      async function saveAttendanceToDatabase(studentId, subject) {
+        // In a real implementation, this would make a fetch() call to your backend
+        return new Promise((resolve) => {
+          // Simulate API call delay
+          setTimeout(() => {
+            resolve({ success: true });
+          }, 1000);
+        });
+      }
     });
   </script>
+
+  <script>
+    document.getElementById('startAttendanceBtn').addEventListener('click', () => {
+      document.getElementById('attendanceSection').classList.remove('hidden');
+      document.getElementById('attendanceResults').classList.add('hidden');
+      document.getElementById('resultsList').innerHTML = '';
+    });
+
+    document.getElementById('captureBtn').addEventListener('click', async () => {
+      const subject = document.getElementById('subject').value;
+      if (!subject) {
+        alert('Please enter a subject name.');
+        return;
+      }
+
+      const resultsList = document.getElementById('resultsList');
+      const attendanceResults = document.getElementById('attendanceResults');
+      attendanceResults.classList.remove('hidden');
+      resultsList.innerHTML = `
+      <div class="student-card processing-card">
+        <span class="attendance-spinner"></span>
+        <span class="student-name">Recognizing face...</span>
+      </div>
+    `;
+
+      try {
+        const captureRes = await fetch('/capture', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ subject })
+        });
+
+        const captureData = await captureRes.json();
+
+        if (!captureData.success) {
+          throw new Error('Face recognition failed.');
+        }
+
+        const saveRes = await fetch('/api/save_attendance', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            student_id: captureData.student_id,
+            name: captureData.name,
+            subject: captureData.subject
+          })
+        });
+
+        const saveData = await saveRes.json();
+
+        if (!saveRes.ok) {
+          throw new Error(saveData.error || 'Attendance save failed.');
+        }
+
+        resultsList.innerHTML = `
+        <div class="student-card success-card">
+          <div class="student-name">${captureData.name}</div>
+          <div class="attendance-time">${new Date(captureData.timestamp).toLocaleString()}</div>
+          <div class="status-badge">Present</div>
+        </div>
+      `;
+
+      } catch (err) {
+        resultsList.innerHTML = `
+        <div class="student-card error-card">
+          <div class="student-name">Error</div>
+          <div class="attendance-time">${new Date().toLocaleString()}</div>
+          <div class="status-badge" style="background-color: #dc3545;">${err.message}</div>
+        </div>
+      `;
+      }
+    });
+  </script>
+
+
+
 </body>
+
 </html>
