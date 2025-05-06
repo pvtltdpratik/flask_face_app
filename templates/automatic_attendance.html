@@ -225,9 +225,75 @@
     .error-card {
       border-left: 4px solid #dc3545;
     }
+
+    .status-container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      max-width: 300px;
+      z-index: 1000;
+    }
+
+    .status-message {
+      padding: 0.75rem 1.25rem;
+      margin-bottom: 0.5rem;
+      border-radius: 0.25rem;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    .capture-btn {
+      background-color: var(--accent-color);
+      color: white;
+      border: none;
+      border-radius: 50px;
+      padding: 0.75rem 1.5rem;
+      font-weight: 600;
+      margin-right: 0.5rem;
+      transition: all 0.3s ease;
+    }
+
+    .capture-btn:hover {
+      background-color: var(--accent-dark);
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(212, 160, 23, 0.4);
+    }
+
+    .btn-group {
+      display: flex;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+
+    .fade-out {
+      opacity: 0;
+      transition: opacity 0.5s ease-out;
+    }
+
+    .processing-card {
+      background-color: rgba(212, 160, 23, 0.1);
+    }
+
+    .success-card {
+      border-left: 4px solid #28a745;
+    }
+
+    .error-card {
+      border-left: 4px solid #dc3545;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateY(20px);
+        opacity: 0;
+      }
+
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
   </style>
-
-
 </head>
 
 <body>
@@ -259,12 +325,18 @@
 
         <div id="attendanceSection" class="hidden mt-4">
           <div class="video-container">
-            <img id="videoFeed" src="" width="640" height="480">
+            <video id="videoFeed" autoplay playsinline width="640" height="480"></video>
           </div>
 
-          <button id="captureBtn" class="btn btn-attendance">
-            <i class="bi bi-person-check-fill me-2"></i> Mark Attendance
-          </button>
+          <div class="btn-group d-flex flex-column align-items-center">
+            <button id="captureBtn" class="capture-btn">
+              <i class="bi bi-camera-fill me-2"></i>Capture
+            </button>
+            <br>
+            <button id="markAttendanceBtn" class="btn-attendance">
+              <i class="bi bi-person-check-fill me-2"></i> Mark Attendance
+            </button>
+          </div>
 
           <div id="attendanceResults" class="hidden">
             <h5 class="text-center mb-3" style="color: var(--wood-dark);">
@@ -273,6 +345,7 @@
             <div id="resultsList"></div>
           </div>
         </div>
+        <canvas id="captureCanvas" style="display: none;"></canvas>
       </div>
     </div>
   </div>
@@ -282,239 +355,269 @@
 
   <script>
     document.addEventListener('DOMContentLoaded', function () {
+      // DOM Elements
       const startBtn = document.getElementById('startAttendanceBtn');
       const attendanceSection = document.getElementById('attendanceSection');
       const videoFeed = document.getElementById('videoFeed');
       const captureBtn = document.getElementById('captureBtn');
+      const markAttendanceBtn = document.getElementById('markAttendanceBtn');
       const attendanceResults = document.getElementById('attendanceResults');
       const resultsList = document.getElementById('resultsList');
       const subjectInput = document.getElementById('subject');
+      const captureCanvas = document.getElementById('captureCanvas');
+      const statusContainer = document.createElement('div');
+      statusContainer.className = 'status-container';
+      document.body.appendChild(statusContainer);
+      const ctx = captureCanvas.getContext('2d');
 
-      // Store recognized students to avoid duplicates
+      // State variables
+      let stream = null;
+      let capturedImageData = null;
       const recognizedStudents = new Set();
 
+
+      function stopWebcam(videoElement) {
+        const stream = videoElement.srcObject;
+        const tracks = stream?.getTracks();
+        tracks?.forEach(track => track.stop());
+        videoElement.srcObject = null; // Disconnect video
+      }
+
+      function freezeFrame() {
+        // Resize canvas to video size
+        captureCanvas.width = videoFeed.videoWidth;
+        captureCanvas.height = videoFeed.videoHeight;
+
+        // Draw current video frame to canvas
+        ctx.drawImage(videoFeed, 0, 0, captureCanvas.width, captureCanvas.height);
+
+        // Hide video, show canvas
+        videoFeed.style.display = 'none';
+        captureCanvas.style.display = 'block';
+
+        // Stop webcam
+        stopWebcam(videoFeed);
+      }
+
+      // Initialize video stream
+      async function initVideoStream() {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { width: 640, height: 480, facingMode: 'user' },
+            audio: false
+          });
+          videoFeed.srcObject = stream;
+          return true;
+        } catch (error) {
+          console.error('Camera error:', error);
+          showStatus('Could not access camera. Please ensure permissions are granted.', 'error');
+          return false;
+        }
+      }
+
       // Start attendance system
-      startBtn.addEventListener('click', function () {
-        if (!subjectInput.value) {
-          alert('Please enter a subject name');
+      startBtn.addEventListener('click', async function () {
+        if (!subjectInput.value.trim()) {
+          showStatus('Please enter a subject name', 'error');
           return;
         }
 
+        const success = await initVideoStream();
+        if (!success) return;
+
         attendanceSection.classList.remove('hidden');
-        videoFeed.src = "{{ url_for('automatic_attendance_page') }}";
         startBtn.disabled = true;
         subjectInput.disabled = true;
 
         // Clear previous results
         resultsList.innerHTML = '';
         recognizedStudents.clear();
+        capturedImageData = null;
       });
 
-      // Capture attendance
-      captureBtn.addEventListener('click', async function () {
-        try {
-          captureBtn.disabled = true;
-          captureBtn.innerHTML = '<span class="attendance-spinner"></span> Processing...';
+      // Capture current frame
+      captureBtn.addEventListener('click', function () {
 
+        // freezeFrame();
+
+        if (!stream) {
+          showStatus('Video feed not available', 'error');
+          return;
+        }
+
+        // Capture image frame
+        captureCanvas.width = videoFeed.videoWidth;
+        captureCanvas.height = videoFeed.videoHeight;
+        const ctx = captureCanvas.getContext('2d');
+        ctx.drawImage(videoFeed, 0, 0, captureCanvas.width, captureCanvas.height);
+        capturedImageData = captureCanvas.toDataURL('image/jpeg', 0.8);
+
+        showStatus('Frame captured successfully!', 'success');
+        markAttendanceBtn.disabled = false;
+      });
+
+      // Process attendance from captured image
+      markAttendanceBtn.addEventListener('click', async function () {
+        if (!capturedImageData) {
+          showStatus('Please capture an image first', 'error');
+          return;
+        }
+
+        markAttendanceBtn.disabled = true;
+        markAttendanceBtn.innerHTML = '<span class="attendance-spinner"></span> Processing...';
+
+        try {
+          // Send to server for face recognition
           const response = await fetch('/capture', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              subject: subjectInput.value
+              subject: subjectInput.value.trim(),
+              image_data: capturedImageData,
+              timestamp: new Date().toISOString()
             })
           });
 
           const result = await response.json();
 
-          if (result.error) {
-            alert(result.error);
+          if (!response.ok) {
+            throw new Error(result.error || 'Face recognition failed');
+          }
+
+          attendanceResults.classList.remove('hidden');
+
+          // Process recognized students
+          if (result.students && result.students.length > 0) {
+            await Promise.all(result.students.map(student =>
+              processStudentAttendance(student, subjectInput.value.trim())
+            ));
           } else {
-            attendanceResults.classList.remove('hidden');
-
-            // Skip if student already recognized
-            if (recognizedStudents.has(result.student_id)) {
-              showStatus(`${result.student_id} already marked present`, 'info');
-              return;
-            }
-
-            recognizedStudents.add(result.student_id);
-
-            // Create processing card
-            const studentCard = document.createElement('div');
-            studentCard.className = 'student-card processing-card';
-            studentCard.innerHTML = `
-            <div class="d-flex justify-content-between align-items-center">
-              <span class="student-name">${result.student_id}</span>
-              <span class="status-badge">
-                <span class="attendance-spinner"></span> Marking...
-              </span>
-            </div>
-          `;
-
-            resultsList.prepend(studentCard);
-
-            // Simulate API call to save attendance (replace with actual API call)
-            setTimeout(async () => {
-              try {
-                // This would be your actual API call to save attendance
-                const saveResponse = await saveAttendanceToDatabase(
-                  result.student_id,
-                  subjectInput.value
-                );
-
-                // Update card with success state
-                studentCard.className = 'student-card success-card';
-                studentCard.innerHTML = `
-                <div class="d-flex justify-content-between align-items-center">
-                  <span class="student-name">${result.student_id}</span>
-                  <span class="status-badge">Present</span>
-                </div>
-                <div class="attendance-time mt-1">
-                  <i class="bi bi-clock"></i> ${new Date().toLocaleString()}
-                </div>
-                <div class="mt-2">
-                  <small class="text-muted">Subject: ${subjectInput.value}</small>
-                </div>
-              `;
-
-                showStatus(`${result.student_id} marked present`, 'success');
-              } catch (error) {
-                // Update card with error state
-                studentCard.className = 'student-card error-card';
-                studentCard.innerHTML = `
-                <div class="d-flex justify-content-between align-items-center">
-                  <span class="student-name">${result.student_id}</span>
-                  <span class="status-badge" style="background-color: #dc3545;">Error</span>
-                </div>
-                <div class="mt-2 text-danger">
-                  <small>Failed to save attendance</small>
-                </div>
-              `;
-
-                showStatus(`Failed to mark ${result.student_id} present`, 'error');
-              }
-            }, 1500); // Simulate network delay
+            showStatus('No recognized students in frame', 'info');
           }
         } catch (error) {
-          console.error('Error:', error);
-          showStatus('Failed to capture attendance', 'error');
+          console.error('Attendance error:', error);
+          showStatus(error.message, 'error');
         } finally {
-          captureBtn.disabled = false;
-          captureBtn.innerHTML = '<i class="bi bi-person-check-fill me-2"></i> Mark Attendance';
+          markAttendanceBtn.disabled = false;
+          markAttendanceBtn.innerHTML = '<i class="bi bi-person-check-fill me-2"></i> Mark Attendance';
         }
       });
 
-      // Status notification function
+      // Process individual student attendance
+      async function processStudentAttendance(student, subject) {
+        if (recognizedStudents.has(student.student_id)) {
+          showStatus(`${student.name} already marked present`, 'info');
+          return;
+        }
+
+        recognizedStudents.add(student.student_id);
+
+        // Create student card
+        const card = createStudentCard(student, 'processing');
+        resultsList.prepend(card);
+
+        try {
+          // Save attendance to database
+          const saveResponse = await fetch('/api/save_attendance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              student_id: student.student_id,
+              name: student.name,
+              subject: subject,
+              date: new Date().toISOString().split('T')[0],
+              class: 'Class 10A', // Replace with dynamic class if needed
+              status: 'Present',
+              timestamp: new Date().toISOString()
+            })
+          });
+
+          const saveResult = await saveResponse.json();
+
+          if (!saveResponse.ok || !saveResult.success) {
+            throw new Error(saveResult.error || 'Failed to save attendance');
+          }
+
+          // Update card to success state
+          updateStudentCard(card, 'success', student, subject);
+          showStatus(`${student.name} marked present`, 'success');
+        } catch (error) {
+          console.error('Save error:', error);
+          updateStudentCard(card, 'error', student, subject);
+          showStatus(`Failed to mark ${student.name}: ${error.message}`, 'error');
+        }
+      }
+
+      // Create student card element
+      function createStudentCard(student, state) {
+        const card = document.createElement('div');
+        card.className = `student-card ${state}-card`;
+
+        let statusHTML = '';
+        if (state === 'processing') {
+          statusHTML = '<span class="attendance-spinner"></span> Processing...';
+        } else if (state === 'success') {
+          statusHTML = 'Present';
+        } else {
+          statusHTML = 'Error';
+        }
+
+        card.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center">
+                <span class="student-name">${student.name} (${student.student_id})</span>
+                <span class="status-badge">${statusHTML}</span>
+            </div>
+        `;
+
+        return card;
+      }
+
+      // Update student card state
+      function updateStudentCard(card, state, student, subject) {
+        card.className = `student-card ${state}-card`;
+
+        const statusBadge = card.querySelector('.status-badge');
+        statusBadge.innerHTML = state === 'success' ? 'Present' : 'Error';
+
+        if (state === 'success') {
+          card.innerHTML += `
+                <div class="attendance-time mt-1">
+                    <i class="bi bi-clock"></i> ${new Date().toLocaleString()}
+                </div>
+                <div class="mt-2">
+                    <small class="text-muted">Subject: ${subject}</small>
+                </div>
+            `;
+        }
+      }
+
+      // Show status message
       function showStatus(message, type = 'success') {
         const statusDiv = document.createElement('div');
-        statusDiv.className = `alert alert-${type === 'error' ? 'danger' :
-          type === 'info' ? 'info' : 'success'} mt-3`;
+        statusDiv.className = `alert alert-${type} status-message`;
         statusDiv.innerHTML = `
-        <i class="bi ${type === 'error' ? 'bi-exclamation-triangle' :
+            <i class="bi ${type === 'error' ? 'bi-exclamation-triangle' :
             type === 'info' ? 'bi-info-circle' : 'bi-check-circle'} me-2"></i>
-        ${message}
-      `;
+            ${message}
+        `;
 
-        // Add to the top of attendance results
-        attendanceResults.prepend(statusDiv);
+        statusContainer.appendChild(statusDiv);
 
         // Auto-hide after 5 seconds
         setTimeout(() => {
-          statusDiv.style.opacity = '0';
+          statusDiv.classList.add('fade-out');
           setTimeout(() => statusDiv.remove(), 500);
         }, 5000);
       }
 
-      // Mock function - replace with actual API call to your backend
-      async function saveAttendanceToDatabase(studentId, subject) {
-        // In a real implementation, this would make a fetch() call to your backend
-        return new Promise((resolve) => {
-          // Simulate API call delay
-          setTimeout(() => {
-            resolve({ success: true });
-          }, 1000);
-        });
-      }
+      // Clean up when leaving page
+      window.addEventListener('beforeunload', () => {
+        if (stream) {
+          stream.getTracks().forEach(track => track.stop());
+        }
+      });
     });
   </script>
-
-  <script>
-    document.getElementById('startAttendanceBtn').addEventListener('click', () => {
-      document.getElementById('attendanceSection').classList.remove('hidden');
-      document.getElementById('attendanceResults').classList.add('hidden');
-      document.getElementById('resultsList').innerHTML = '';
-    });
-
-    document.getElementById('captureBtn').addEventListener('click', async () => {
-      const subject = document.getElementById('subject').value;
-      if (!subject) {
-        alert('Please enter a subject name.');
-        return;
-      }
-
-      const resultsList = document.getElementById('resultsList');
-      const attendanceResults = document.getElementById('attendanceResults');
-      attendanceResults.classList.remove('hidden');
-      resultsList.innerHTML = `
-      <div class="student-card processing-card">
-        <span class="attendance-spinner"></span>
-        <span class="student-name">Recognizing face...</span>
-      </div>
-    `;
-
-      try {
-        const captureRes = await fetch('/capture', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ subject })
-        });
-
-        const captureData = await captureRes.json();
-
-        if (!captureData.success) {
-          throw new Error('Face recognition failed.');
-        }
-
-        const saveRes = await fetch('/api/save_attendance', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            student_id: captureData.student_id,
-            name: captureData.name,
-            subject: captureData.subject
-          })
-        });
-
-        const saveData = await saveRes.json();
-
-        if (!saveRes.ok) {
-          throw new Error(saveData.error || 'Attendance save failed.');
-        }
-
-        resultsList.innerHTML = `
-        <div class="student-card success-card">
-          <div class="student-name">${captureData.name}</div>
-          <div class="attendance-time">${new Date(captureData.timestamp).toLocaleString()}</div>
-          <div class="status-badge">Present</div>
-        </div>
-      `;
-
-      } catch (err) {
-        resultsList.innerHTML = `
-        <div class="student-card error-card">
-          <div class="student-name">Error</div>
-          <div class="attendance-time">${new Date().toLocaleString()}</div>
-          <div class="status-badge" style="background-color: #dc3545;">${err.message}</div>
-        </div>
-      `;
-      }
-    });
-  </script>
-
-
-
 </body>
 
 </html>

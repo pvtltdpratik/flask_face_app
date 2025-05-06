@@ -1,7 +1,7 @@
 flask~=3.1.0
 pymongo~=4.12.1
 python-dotenv
-numpy~=2.2.5
+numpy~=1.23.5
 opencv-contrib-python
 opencv-python~=4.11.0.86
 openpyxl
@@ -9,3 +9,8 @@ pandas~=2.2.3
 pillow~=11.2.1
 pyttsx3~=2.98
 flask-cors~=5.0.1
+tensorflow~=2.19.0
+keras~=3.9.2
+deepface~=0.0.93
+tf-keras~=2.19.0
+opencv-python-headless~=4.11.0.86

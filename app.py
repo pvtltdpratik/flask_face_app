@@ -3,13 +3,15 @@
 # password = LSMt1jebHWuPEB0m
 import base64
 import pandas as pd
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+from flask import Flask, render_template, request, Response,redirect, url_for, flash, jsonify
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 import os
 import cv2
 import csv
 from datetime import datetime
+from PIL import Image
+import io
 import pyttsx3
 from takeImage import *
 from recognizer import face_utils
@@ -18,7 +20,8 @@ from flask_cors import CORS  # Add this import
 from automaticAttedance import *
 from render import *
 from show_attendance import *
-
+from deepface import DeepFace
+import os
 app  = Flask(__name__)
 app.secret_key = 'your_secret_key'  # Secret key for flash messages
 CORS(app)
@@ -61,18 +64,18 @@ def index():
     return render_template('index.html')  # Render your index page
 
 
-@app.route('/register', methods=['GET'])
+@app.route(os.getenv('API_URI') + '/register', methods=['GET'])
 def register():
     """Render the student registration form"""
     return render_template('register_student.html')
 
-@app.route('/automatic_attendance')
+@app.route(os.getenv('API_URI') + '/automatic_attendance')
 def automatic_attendance():
     # Implement functionality to start automatic attendance
     return render_template('automatic_attendance.html')
 
 
-@app.route('/api_register_student', methods=['POST'])
+@app.route(os.getenv('API_URI') + '/api_register_student', methods=['POST'])
 def api_register_student():
     try:
         # Get form data
@@ -136,88 +139,74 @@ def api_register_student():
         print(f"Error: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@app.route('/capture', methods=['POST'])
+# Decode base64 image and convert to numpy array
+def decode_image(base64_string):
+    image_data = base64.b64decode(base64_string)
+    image = Image.open(io.BytesIO(image_data))
+    return np.array(image)
+
+@app.route(os.getenv('API_URI') + '/capture', methods=['POST'])
 def capture():
+    # Step 1: Capture frame from webcam
+    cap = cv2.VideoCapture(0)
+    ret, frame = cap.read()
+    cap.release()
+
+    if not ret:
+        return jsonify({"error": "Failed to capture image"}), 500
+
+    # Step 2: Save captured image temporarily
+    os.makedirs("temp", exist_ok=True)
+    temp_path = "temp/captured.jpg"
+    cv2.imwrite(temp_path, frame)
+
     try:
-        data = request.get_json()
-        subject = data.get('subject')
-        
-        # Here you would implement your face recognition logic
-        # For demonstration, we'll use mock data
-        recognized_student = {
-            "student_id": "S12345",  # Replace with actual recognized student ID
-            "name": "John Doe"       # Replace with actual recognized student name
-        }
-        
+        # Step 3: Search in the known student database
+        result = DeepFace.find(
+            img_path=temp_path,
+            db_path="static/student_photos",
+            model_name="VGG-Face",  # Or try "Facenet", "ArcFace", "SFace"
+            enforce_detection=False
+        )
 
-        print(f"Attendance captured for student ID: {recognized_student['student_id']} in subject: {subject}")
+        if result[0].empty:
+            return jsonify({"message": "No recognized students in frame"}), 404
 
-        return jsonify({
-            "success": True,
-            "student_id": recognized_student["student_id"],
-            "name": recognized_student["name"],
-            "timestamp": datetime.now().isoformat(),
-            "subject": subject
-        })
-        
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        # Step 4: Get matched file name
+        matched_img_path = result[0].iloc[0]['identity']
+        filename = os.path.basename(matched_img_path)  # e.g., 938_20250506_114831.jpg
+        enrollment_no = filename.split("_")[0]          # extract "938"
 
-@app.route('/api/save_attendance', methods=['POST'])
-def save_attendance():
-    try:
-        data = request.get_json()
-        student_id = data.get('student_id')
-        name = data.get('name')
-        subject = data.get('subject')
-        timestamp = datetime.now()
+        # Step 5: Fetch student from MongoDB
+        student = students_collection.find_one({"enrollment_no": enrollment_no})
+        if not student:
+            return jsonify({"message": "Student not found in database"}), 404
 
-        if not all([student_id, name, subject]):
-            return jsonify({"error": "Missing fields"}), 400
-
-        date_str = timestamp.strftime("%Y-%m-%d")
-
-        # Check if already recorded
-        existing = attendance_collection.find_one({
-            "date": date_str,
-            "subject": subject,
-            "student_id": student_id
-        })
-
-        if existing:
-            return jsonify({"error": "Attendance already recorded"}), 400
-
-        # Save attendance
-        attendance_collection.insert_one({
-            "student_id": student_id,
-            "name": name,
-            "subject": subject,
-            "status": "Present",
-            "timestamp": timestamp,
-            "date": date_str
-        })
-
-        return jsonify({"success": True})
+        # Step 6: Return matched student info
+        return dumps(student), 200
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    finally:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
 
-@app.route('/automatic_attendance_page')
+@app.route(os.getenv('API_URI') + '/automatic_attendance_page')
 def automatic_attendance_page():
     return Response(gen_frames(Camera()), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 
-@app.route('/view_attendance')
+@app.route(os.getenv('API_URI') + '/view_attendance')
 def view_attendance():
     return render_template("attendance_table.html")
 
-@app.route('/get_classes', methods=['POST'])
+@app.route(os.getenv('API_URI') + '/get_classes', methods=['POST'])
 def get_classes():
     selected_date = request.json.get("date")
     classes = attendance_collection.find({"date": selected_date}).distinct("class")
     return jsonify(classes)
 
-@app.route('/get_attendance', methods=['POST'])
+@app.route(os.getenv('API_URI') + '/get_attendance', methods=['POST'])
 def get_attendance():
     selected_date = request.json.get("date")
     selected_class = request.json.get("class")
